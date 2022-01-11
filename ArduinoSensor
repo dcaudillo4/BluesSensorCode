@@ -1,0 +1,43 @@
+#include <Notecard.h>
+#include <NotecardPseudoSensor.h>
+#include <Wire.h>
+#include <Adafruit_BME680.h>
+
+using namespace blues;
+
+#define serialDebug Serial
+#define productUID "com.gmail.desiree.caudillo4:trackerconfig"
+
+Notecard notecard;
+NotecardPseudoSensor sensor(notecard);
+
+void setup() {
+
+delay(2500);
+serialDebug.begin(115200);
+
+notecard.begin();
+notecard.setDebugOutputStream(serialDebug);
+
+J *req = notecard.newRequest("hub.set");
+JAddStringToObject(req, "product", productUID);
+JAddStringToObject(req, "mode", "continuous");
+notecard.sendRequest(req);
+
+}
+
+void loop() {
+
+float temperature = sensor.temp();
+float humidity = sensor.humidity();
+
+serialDebug.print("Temperature = ");
+serialDebug.print(temperature);
+serialDebug.println(" *C");
+serialDebug.print("Humidity = ");
+serialDebug.print(humidity);
+serialDebug.println(" %");
+
+delay(15000);
+
+}
