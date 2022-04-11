@@ -1,0 +1,67 @@
+import json
+import notecard
+from periphery 
+import I2C
+import time
+import bme680
+
+bme_sensor = bme680.BME680(bme680.I2C_ADDR_PRIMARY)
+
+bme_sensor.set_humidity_oversample(bme680.OS_2X)
+bme_sensor.set_temperature_oversample(bme680.OS_8X)
+
+bme_sensor.get_sensor_data()
+
+productUID = "com.blues.dcaudillo:trackerproj4"
+port = I2C("/dev/i2c-1")
+card = notecard.OpenI2C(port, 0, 0)
+
+req = {"req": "hub.set"}
+req["product"] = productUID
+req["mode"] = "continuous"
+req["sync"] = True
+print(json.dumps(req))
+rsp = card.Transaction(req)
+
+req = {"req": "env.default"}
+req["name"] = "temperatureunits"
+req["text"] = "C"
+rsp = card.Transaction(req)
+
+print(rsp)
+
+while True:
+   
+    req = {"req": "env.get"}
+    req["name"] = "temperatureunits"
+    print(req)
+    rsp = card.Transaction(req)
+    print(rsp)
+   
+    bme_sensor.get_sensor_data()
+   
+    tempValue = bme_sensor.data.temperature
+    temperatureunits = rsp["text"]
+    print(temperatureunits)
+    humidity = bme_sensor.data.humidity
+   
+    if (temperatureunits == 'F'):
+        tempValue = (tempValue * 9 / 5 + 32)
+        print('Temperature: {}'.format(tempValue) + temperatureunits)
+    elif (temperatureunits == 'C'):
+        print('Temperature: {}'.format(tempValue) + temperatureunits)
+        #pass
+    else:
+        print("**** INVALID TEMPERATURE UNITS")
+   
+    print('Humidity: {}%'.format(humidity))
+
+    req = {"req": "note.add"}
+    req["file"] = "sensors.qo"
+    req["sync"] = True
+    req["body"] = { "temp": tempValue, "humidity": humidity}
+    rsp = card.Transaction(req)
+
+    print(rsp)
+
+    time.sleep(60)
